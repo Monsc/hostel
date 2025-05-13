@@ -7,5 +7,8 @@
     "deploy:worker": "cd worker && npm install && wrangler deploy",
     "deploy:frontend": "cd frontend && npm install && npm run build",
     "deploy": "npm run setup:env && npm run deploy:worker && npm run deploy:frontend"
+  },
+  "devDependencies": {
+    "vite": "^4.4.9"
   }
-} 
+}
