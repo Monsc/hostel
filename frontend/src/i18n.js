@@ -55,7 +55,27 @@ const resources = {
         export: 'Export Orders',
         ical: 'iCal Sync',
         manage: 'Manage Rooms',
+        guest: 'Guest',
+        room: 'Room',
+        checkin: 'Check-in',
+        checkout: 'Check-out',
+        total: 'Total',
+        booked: 'Booked',
+        available: 'Available',
+        ical_coming_soon: 'iCal sync feature coming soon...',
+        room_manage_coming_soon: 'Room management feature coming soon...'
       },
+      error: {
+        fetch_orders: 'Failed to fetch orders',
+        fetch_status: 'Failed to fetch room status',
+        export: 'Failed to export orders'
+      },
+      loading: 'Loading...',
+      pagination: {
+        prev: 'Previous',
+        next: 'Next',
+        page: 'Page {{page}} of {{total}}'
+      }
     },
   },
   zh: {
@@ -110,7 +130,27 @@ const resources = {
         export: '导出订单',
         ical: 'iCal同步',
         manage: '管理房型',
+        guest: '客人',
+        room: '房型',
+        checkin: '入住',
+        checkout: '退房',
+        total: '总数',
+        booked: '已预订',
+        available: '可用',
+        ical_coming_soon: 'iCal同步功能开发中...',
+        room_manage_coming_soon: '房型管理功能开发中...'
       },
+      error: {
+        fetch_orders: '获取订单失败',
+        fetch_status: '获取房态失败',
+        export: '导出订单失败'
+      },
+      loading: '加载中...',
+      pagination: {
+        prev: '上一页',
+        next: '下一页',
+        page: '第 {{page}} 页，共 {{total}} 页'
+      }
     },
   },
 };

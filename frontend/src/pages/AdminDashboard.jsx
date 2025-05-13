@@ -1,91 +1,202 @@
-import React, { useState } from 'react';
-
-const mockOrders = [
-  { id: 1, guest: 'Alice', room: '8-Bed Mixed Dorm', checkin: '2025-06-01', checkout: '2025-06-05', status: '已支付' },
-  { id: 2, guest: 'Bob', room: '4-Bed Mixed Dorm', checkin: '2025-06-02', checkout: '2025-06-04', status: '已支付' },
-];
-
-const mockStatus = [
-  { room: '8-Bed Mixed Dorm', total: 8, booked: 5, available: 3 },
-  { room: '4-Bed Mixed Dorm', total: 4, booked: 2, available: 2 },
-  { room: '3-Bed Female Dorm', total: 6, booked: 4, available: 2 },
-];
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 
 const AdminDashboard = () => {
-  const lang = navigator.language.startsWith('zh') ? 'zh' : 'en';
-  const [orders] = useState(mockOrders);
-  const [status] = useState(mockStatus);
+  const { t } = useTranslation();
+  const [orders, setOrders] = useState([]);
+  const [status, setStatus] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0
+  });
 
-  const handleExport = () => {
-    alert(lang === 'zh' ? '导出订单功能开发中...' : 'Export feature coming soon...');
+  useEffect(() => {
+    fetchOrders();
+    fetchRoomStatus();
+  }, [pagination.page]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/api/orders', {
+        params: {
+          page: pagination.page,
+          limit: pagination.limit
+        },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      setOrders(response.data.orders);
+      setPagination(response.data.pagination);
+    } catch (error) {
+      setError(error.response?.data?.message || t('error.fetch_orders'));
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const fetchRoomStatus = async () => {
+    try {
+      const response = await axios.get('/api/room-status', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      setStatus(response.data);
+    } catch (error) {
+      setError(error.response?.data?.message || t('error.fetch_status'));
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const response = await axios.get('/api/orders/export', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `orders-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      setError(error.response?.data?.message || t('error.export'));
+    }
+  };
+
   const handleICalSync = () => {
-    alert(lang === 'zh' ? 'iCal同步功能开发中...' : 'iCal sync coming soon...');
+    alert(t('admin.ical_coming_soon'));
   };
+
   const handleRoomManage = () => {
-    alert(lang === 'zh' ? '房型管理功能开发中...' : 'Room management coming soon...');
+    alert(t('admin.room_manage_coming_soon'));
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
   };
 
   return (
     <div className="pt-24 pb-12 bg-blue-50 min-h-screen flex flex-col items-center">
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 w-full max-w-5xl">
+          {error}
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-5xl mb-8">
-        <h2 className="text-2xl font-bold mb-6 text-blue-700 text-center">{lang === 'zh' ? '订单管理' : 'Order Management'}</h2>
+        <h2 className="text-2xl font-bold mb-6 text-blue-700 text-center">{t('admin.order')}</h2>
+        {loading ? (
+          <div className="text-center py-4">{t('loading')}</div>
+        ) : (
+          <>
+            <table className="w-full mb-8 border rounded overflow-hidden text-sm">
+              <thead className="bg-blue-100">
+                <tr>
+                  <th className="py-2 px-2">{t('admin.guest')}</th>
+                  <th className="py-2 px-2">{t('admin.room')}</th>
+                  <th className="py-2 px-2">{t('admin.checkin')}</th>
+                  <th className="py-2 px-2">{t('admin.checkout')}</th>
+                  <th className="py-2 px-2">{t('admin.status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order._id} className="border-t">
+                    <td className="py-2 px-2">{order.guestName}</td>
+                    <td className="py-2 px-2">{order.roomId}</td>
+                    <td className="py-2 px-2">{new Date(order.checkInTime).toLocaleDateString()}</td>
+                    <td className="py-2 px-2">{new Date(order.checkOutTime).toLocaleDateString()}</td>
+                    <td className="py-2 px-2">{order.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* 分页控件 */}
+            <div className="flex justify-between items-center">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  {t('pagination.prev')}
+                </button>
+                <span className="px-3 py-1">
+                  {t('pagination.page', { page: pagination.page, total: pagination.pages })}
+                </span>
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.pages}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  {t('pagination.next')}
+                </button>
+              </div>
+              <button
+                onClick={handleExport}
+                className="bg-yellow-400 text-blue-900 px-6 py-2 rounded font-bold hover:bg-yellow-500 transition"
+              >
+                {t('admin.export')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-5xl mb-8">
+        <h2 className="text-2xl font-bold mb-6 text-blue-700 text-center">{t('admin.status')}</h2>
         <table className="w-full mb-8 border rounded overflow-hidden text-sm">
           <thead className="bg-blue-100">
             <tr>
-              <th className="py-2 px-2">{lang === 'zh' ? '客人' : 'Guest'}</th>
-              <th className="py-2 px-2">{lang === 'zh' ? '房型' : 'Room'}</th>
-              <th className="py-2 px-2">{lang === 'zh' ? '入住' : 'Check-in'}</th>
-              <th className="py-2 px-2">{lang === 'zh' ? '退房' : 'Check-out'}</th>
-              <th className="py-2 px-2">{lang === 'zh' ? '状态' : 'Status'}</th>
+              <th className="py-2 px-2">{t('admin.room')}</th>
+              <th className="py-2 px-2">{t('admin.total')}</th>
+              <th className="py-2 px-2">{t('admin.booked')}</th>
+              <th className="py-2 px-2">{t('admin.available')}</th>
             </tr>
           </thead>
           <tbody>
-            {orders.map((o, idx) => (
-              <tr key={idx} className="border-t">
-                <td className="py-2 px-2">{o.guest}</td>
-                <td className="py-2 px-2">{o.room}</td>
-                <td className="py-2 px-2">{o.checkin}</td>
-                <td className="py-2 px-2">{o.checkout}</td>
-                <td className="py-2 px-2">{o.status}</td>
+            {Object.entries(status).map(([roomId, data]) => (
+              <tr key={roomId} className="border-t">
+                <td className="py-2 px-2">{roomId}</td>
+                <td className="py-2 px-2">{data.total}</td>
+                <td className="py-2 px-2">{data.booked}</td>
+                <td className="py-2 px-2">{data.available}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <div className="flex justify-end">
-          <button onClick={handleExport} className="bg-yellow-400 text-blue-900 px-6 py-2 rounded font-bold hover:bg-yellow-500 transition">{lang === 'zh' ? '导出订单' : 'Export Orders'}</button>
+          <button
+            onClick={handleICalSync}
+            className="bg-blue-700 text-white px-6 py-2 rounded font-bold hover:bg-blue-800 transition mr-2"
+          >
+            {t('admin.ical')}
+          </button>
         </div>
       </div>
-      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-5xl mb-8">
-        <h2 className="text-2xl font-bold mb-6 text-blue-700 text-center">{lang === 'zh' ? '房态管理' : 'Room Status'}</h2>
-        <table className="w-full mb-8 border rounded overflow-hidden text-sm">
-          <thead className="bg-blue-100">
-            <tr>
-              <th className="py-2 px-2">{lang === 'zh' ? '房型' : 'Room'}</th>
-              <th className="py-2 px-2">{lang === 'zh' ? '总数' : 'Total'}</th>
-              <th className="py-2 px-2">{lang === 'zh' ? '已预订' : 'Booked'}</th>
-              <th className="py-2 px-2">{lang === 'zh' ? '可用' : 'Available'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {status.map((row, idx) => (
-              <tr key={idx} className="border-t">
-                <td className="py-2 px-2">{row.room}</td>
-                <td className="py-2 px-2">{row.total}</td>
-                <td className="py-2 px-2">{row.booked}</td>
-                <td className="py-2 px-2">{row.available}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="flex justify-end">
-          <button onClick={handleICalSync} className="bg-blue-700 text-white px-6 py-2 rounded font-bold hover:bg-blue-800 transition mr-2">{lang === 'zh' ? 'iCal同步' : 'iCal Sync'}</button>
-        </div>
-      </div>
+
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-5xl">
-        <h2 className="text-2xl font-bold mb-6 text-blue-700 text-center">{lang === 'zh' ? '房型管理' : 'Room Management'}</h2>
+        <h2 className="text-2xl font-bold mb-6 text-blue-700 text-center">{t('admin.room_manage')}</h2>
         <div className="flex justify-end">
-          <button onClick={handleRoomManage} className="bg-green-500 text-white px-6 py-2 rounded font-bold hover:bg-green-600 transition">{lang === 'zh' ? '管理房型' : 'Manage Rooms'}</button>
+          <button
+            onClick={handleRoomManage}
+            className="bg-green-500 text-white px-6 py-2 rounded font-bold hover:bg-green-600 transition"
+          >
+            {t('admin.manage')}
+          </button>
         </div>
       </div>
     </div>
