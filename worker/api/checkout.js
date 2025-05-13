@@ -71,6 +71,10 @@ export async function handleCheckout(request, env) {
         quantity: 1,
       };
     }
+    // 调试打印
+    console.log('room:', room);
+    console.log('room.stripePriceId:', room.stripePriceId);
+    console.log('lineItem:', lineItem);
 
     // 创建 Stripe 结账会话
     const session = await stripe.checkout.sessions.create({
@@ -104,6 +108,12 @@ export async function handleCheckout(request, env) {
     );
   } catch (error) {
     console.error('Checkout error:', error);
-    throw new Error('Failed to create checkout session');
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
