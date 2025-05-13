@@ -1,32 +1,32 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { I18nextProvider } from 'react-i18next';
-import i18n from './i18n';
-import RoomList from './components/RoomList';
-import AdminLogin from './components/AdminLogin';
-import RoomStatus from './components/RoomStatus';
-import PrivateRoute from './components/PrivateRoute';
+import NavBar from './components/NavBar';
+import Home from './pages/Home';
+import RoomList from './pages/RoomList';
+import Booking from './pages/Booking';
+import BookingSuccess from './pages/BookingSuccess';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 
-function App() {
+const App = () => {
+  // 这里可根据登录状态动态切换 isAdmin
+  const isAdmin = false;
   return (
-    <I18nextProvider i18n={i18n}>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
-            <Route path="/" element={<RoomList />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route
-              path="/status"
-              element={
-                <PrivateRoute>
-                  <RoomStatus />
-                </PrivateRoute>
-              }
-            />
-          </Routes>
-        </div>
-      </Router>
-    </I18nextProvider>
+    <Router>
+      <NavBar isAdmin={isAdmin} />
+      <div className="pt-20">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/rooms" element={<RoomList />} />
+          <Route path="/booking" element={<Booking />} />
+          <Route path="/booking-success" element={<BookingSuccess />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="*" element={<div className='text-center mt-32 text-gray-500'>404 页面未找到</div>} />
+        </Routes>
+      </div>
+    </Router>
   );
-}
+};
 
 export default App;

@@ -1,6 +1,7 @@
 import { handleCheckout } from './api/checkout';
 import { handleLogin } from './api/login';
 import { handleRoomStatus, handleExportBookings } from './api/roomStatus';
+import { handleRooms } from './api/rooms';
 import { verifyToken } from './utils/auth';
 
 export default {
@@ -33,6 +34,9 @@ export default {
         
         case '/api/export-bookings':
           return await handleExportBookings(request, env);
+        
+        case '/api/rooms':
+          return await handleRooms(request, env);
         
         case '/api/health':
           return new Response(JSON.stringify({ status: 'ok' }), {
