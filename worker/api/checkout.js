@@ -47,8 +47,8 @@ export async function handleCheckout(request, env) {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: customAmount ? 'Custom Payment' : room.name,
-              description: customNote || `${nights} nights at ${room.name}`,
+              name: customAmount ? 'Custom Payment' : room.name.en,
+              description: customNote || `${nights} nights at ${room.name.en}`,
             },
             unit_amount: amount,
           },
