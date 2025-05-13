@@ -79,10 +79,14 @@ export async function handleCheckout(request, env) {
         quantity: 1,
       };
     }
-    // 调试打印
-    console.log('room:', room);
-    console.log('room.stripePriceId:', room.stripePriceId);
-    console.log('lineItem:', lineItem);
+    // 增强调试打印
+    const debugInfo = {
+      room,
+      roomType,
+      stripePriceId: room?.stripePriceId,
+      lineItem
+    };
+    console.log('DEBUG_CHECKOUT:', JSON.stringify(debugInfo));
 
     // 创建 Stripe 结账会话
     const session = await stripe.checkout.sessions.create({
@@ -115,9 +119,16 @@ export async function handleCheckout(request, env) {
       }
     );
   } catch (error) {
-    console.error('Checkout error:', error);
+    const debugInfo = {
+      error: error.message,
+      room,
+      roomType,
+      stripePriceId: room?.stripePriceId,
+      lineItem
+    };
+    console.error('Checkout error:', debugInfo);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify(debugInfo),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
