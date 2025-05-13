@@ -1,0 +1,11 @@
+{
+  "name": "joy-hostel",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup:env": "cd worker && node setup-env.js",
+    "deploy:worker": "cd worker && npm install && wrangler deploy",
+    "deploy:frontend": "cd frontend && npm install && npm run build",
+    "deploy": "npm run setup:env && npm run deploy:worker && npm run deploy:frontend"
+  }
+} 
