@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
 
 const resources = {
   en: {
@@ -13,6 +14,23 @@ const resources = {
         aboutNomad: 'Special long-stay discounts for digital nomads!',
         features: ['Coworking Area', 'Shared Kitchen', 'Spacious Bathrooms', 'Female Dorms', 'High-speed WiFi', 'Nomad Discount'],
         popularRooms: 'Popular Rooms',
+        room_8: '8-Bed Mixed Dorm',
+        room_4: '4-Bed Mixed Dorm',
+        room_female3: '3-Bed Female Dorm',
+        price_8: '€10/person/night',
+        price_4: '€12/person/night',
+        price_female3: '€14/person/night',
+        book: 'Book',
+        notice: 'Guest Information',
+        notice_items: [
+          'Check-in: from 14:00, latest 22:00',
+          'Check-out: before 11:00',
+          'Valid ID (passport/ID card) required at check-in',
+          'Deposit: Some rooms require a deposit, refundable at check-out if no damage',
+          'No smoking in the hostel, please keep quiet in public areas',
+          'Please inform the front desk in advance for late check-out',
+          'Contact: joyhostel@email.com for any questions'
+        ]
       },
       booking: {
         online: 'Book Online',
@@ -51,6 +69,23 @@ const resources = {
         aboutNomad: '数字游民可享常住优惠，欢迎长期入住！',
         features: ['公共办公区', '公共厨房', '宽敞浴室', '女生专属房', '高速WiFi', '数字游民优惠'],
         popularRooms: '热门房型推荐',
+        room_8: '混住八人间',
+        room_4: '混住四人间',
+        room_female3: '女生三人间',
+        price_8: '每人每天10欧元',
+        price_4: '每人每天12欧元',
+        price_female3: '每人每天14欧元',
+        book: '预订',
+        notice: '入住须知',
+        notice_items: [
+          '入住时间：14:00 起，最晚 22:00',
+          '退房时间：11:00 前',
+          '入住需出示有效身份证件（护照/身份证）',
+          '押金：部分房型需收取押金，退房时如无损坏全额退还',
+          '全馆禁烟，公共区域请保持安静',
+          '如需延迟退房请提前告知前台',
+          '如有疑问请联系工作人员：joyhostel@email.com'
+        ]
       },
       booking: {
         online: '在线预订',
@@ -81,13 +116,17 @@ const resources = {
 };
 
 i18n
+  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
-    lng: navigator.language.startsWith('zh') ? 'zh' : 'en',
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,
+    },
+    detection: {
+      order: ['navigator', 'htmlTag', 'cookie', 'localStorage', 'path', 'subdomain'],
+      caches: ['localStorage', 'cookie'],
     },
   });
 
