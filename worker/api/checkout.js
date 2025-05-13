@@ -31,6 +31,11 @@ export async function handleCheckout(request, env) {
     const checkOutDate = new Date(checkout);
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
 
+    // 校验入住和退房日期
+    if (nights <= 0) {
+      throw new Error('Check-out date must be after check-in date');
+    }
+
     // 计算总价
     let amount;
     if (customAmount) {
@@ -39,22 +44,38 @@ export async function handleCheckout(request, env) {
       amount = Math.round(room.price * nights * 100); // 转换为分
     }
 
+    // 校验金额
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    // Stripe line item 逻辑
+    let lineItem;
+    if (room.stripePriceId) {
+      lineItem = {
+        price: room.stripePriceId,
+        quantity: 1,
+      };
+    } else {
+      const roomName = customAmount ? 'Custom Payment' : (room.name?.en || room.name?.zh || 'Room');
+      const roomDesc = customNote || `${nights} nights at ${roomName}`;
+      lineItem = {
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: roomName,
+            description: roomDesc,
+          },
+          unit_amount: amount,
+        },
+        quantity: 1,
+      };
+    }
+
     // 创建 Stripe 结账会话
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: customAmount ? 'Custom Payment' : room.name.en,
-              description: customNote || `${nights} nights at ${room.name.en}`,
-            },
-            unit_amount: amount,
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: [lineItem],
       mode: 'payment',
       success_url: `${env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${env.FRONTEND_URL}/cancel`,
