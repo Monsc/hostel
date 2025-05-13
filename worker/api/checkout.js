@@ -23,7 +23,15 @@ export async function handleCheckout(request, env) {
     // 获取房型信息
     const room = await db.collection('rooms').findOne({ id: roomType });
     if (!room) {
-      throw new Error('Room not found');
+      const errMsg = `Room not found for id: ${roomType}`;
+      console.error(errMsg);
+      return new Response(
+        JSON.stringify({ error: errMsg }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // 计算入住天数
