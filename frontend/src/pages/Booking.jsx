@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
+import axios from 'axios';
 
 const roomOptions = [
   { id: '8bed', name: { zh: '混住八人间', en: '8-Bed Mixed Dorm' }, price: 10 },
@@ -50,21 +51,18 @@ const Booking = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomType: form.roomType,
-          name: form.name,
-          email: form.email,
-          checkin: form.checkin,
-          checkout: form.checkout,
-          customAmount: isCustom ? form.customAmount : undefined,
-          customNote: isCustom ? form.customNote : undefined
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || (lang === 'zh' ? '支付发起失败' : 'Payment failed'));
+      const payload = {
+        roomType: form.roomType,
+        name: form.name,
+        email: form.email,
+        checkin: form.checkin,
+        checkout: form.checkout,
+        customAmount: isCustom ? form.customAmount : undefined,
+        customNote: isCustom ? form.customNote : undefined
+      };
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, payload);
+      const data = await response.data;
+      if (!response.ok) throw new Error(data.message || (lang === 'zh' ? '支付发起失败' : 'Payment failed'));
       const stripe = await stripePromise;
       await stripe.redirectToCheckout({ sessionId: data.sessionId });
     } catch (err) {

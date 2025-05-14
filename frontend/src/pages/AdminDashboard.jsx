@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { format } from 'date-fns';
 
 const AdminDashboard = () => {
   const { t } = useTranslation();
@@ -23,14 +24,9 @@ const AdminDashboard = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/orders', {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit
-        },
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        }
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/orders`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
+        params: { page: pagination.page, limit: pagination.limit }
       });
       setOrders(response.data.orders);
       setPagination(response.data.pagination);
@@ -43,10 +39,9 @@ const AdminDashboard = () => {
 
   const fetchRoomStatus = async () => {
     try {
-      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/room-status', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        }
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/room-status`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
+        params: { date: format(new Date(), 'yyyy-MM-dd') }
       });
       setStatus(response.data);
     } catch (error) {
@@ -56,10 +51,8 @@ const AdminDashboard = () => {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/orders/export', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/orders/export`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
         responseType: 'blob'
       });
 

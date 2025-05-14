@@ -41,7 +41,7 @@ function RoomStatus() {
   const fetchRoomStatus = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/room-status', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/room-status`, {
         params: {
           date: format(selectedDate, 'yyyy-MM-dd')
         },
@@ -59,7 +59,7 @@ function RoomStatus() {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/export-bookings', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/export-bookings`, {
         params: {
           date: format(selectedDate, 'yyyy-MM-dd')
         },

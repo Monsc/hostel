@@ -38,6 +38,8 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 function RoomList() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [rooms, setRooms] = useState(ROOMS);
+  const [error, setError] = useState(null);
 
   const handleBooking = async (room) => {
     try {
@@ -45,7 +47,7 @@ function RoomList() {
       const stripe = await stripePromise;
       
       // 创建结账会话
-      const response = await axios.post('${import.meta.env.VITE_API_URL}/api/create-checkout-session', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
         priceId: room.stripePriceId,
         roomId: room.id
       });
@@ -62,6 +64,17 @@ function RoomList() {
     }
   };
 
+  const fetchRooms = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/rooms`);
+      setRooms(response.data.rooms);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-8">
@@ -69,7 +82,7 @@ function RoomList() {
       </h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {ROOMS.map((room) => (
+        {rooms.map((room) => (
           <div
             key={room.id}
             className="bg-white rounded-lg shadow-lg overflow-hidden"
