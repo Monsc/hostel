@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 import { connectToDatabase } from '../utils/mongo';
 
+console.log('Worker version: 20240514-2');
+
 export async function handleCheckout(request, env) {
   if (request.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
@@ -98,9 +100,9 @@ export async function handleCheckout(request, env) {
       console.error('Error building line item:', lineItemError);
       return new Response(
         JSON.stringify({
-          error: 'Error building line item',
-          details: lineItemError.message,
-          stack: lineItemError.stack
+          error: lineItemError.message,
+          stack: lineItemError.stack,
+          raw: lineItemError
         }),
         { status: 500 }
       );
@@ -132,32 +134,23 @@ export async function handleCheckout(request, env) {
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (stripeError) {
-      console.error('Stripe API error:', {
-        message: stripeError.message,
-        type: stripeError.type,
-        code: stripeError.code,
-        stack: stripeError.stack
-      });
+      console.error('Stripe API error:', stripeError);
       return new Response(
         JSON.stringify({
-          error: 'Stripe API error',
-          details: stripeError.message,
-          type: stripeError.type,
-          code: stripeError.code
+          error: stripeError.message,
+          stack: stripeError.stack,
+          raw: stripeError
         }),
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Unexpected error in handleCheckout:', {
-      message: error.message,
-      stack: error.stack
-    });
+    console.error('Unexpected error in handleCheckout:', error);
     return new Response(
       JSON.stringify({
-        error: 'Unexpected error in handleCheckout',
-        details: error.message,
-        stack: error.stack
+        error: error.message,
+        stack: error.stack,
+        raw: error
       }),
       { status: 500 }
     );
