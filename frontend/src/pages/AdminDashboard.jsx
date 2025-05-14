@@ -23,7 +23,7 @@ const AdminDashboard = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/orders', {
+      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/orders', {
         params: {
           page: pagination.page,
           limit: pagination.limit
@@ -43,7 +43,7 @@ const AdminDashboard = () => {
 
   const fetchRoomStatus = async () => {
     try {
-      const response = await axios.get('/api/room-status', {
+      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/room-status', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -56,7 +56,7 @@ const AdminDashboard = () => {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get('/api/orders/export', {
+      const response = await axios.get('${import.meta.env.VITE_API_URL}/api/orders/export', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('adminToken')}`
         },

@@ -45,7 +45,7 @@ function RoomList() {
       const stripe = await stripePromise;
       
       // 创建结账会话
-      const response = await axios.post('/api/create-checkout-session', {
+      const response = await axios.post('${import.meta.env.VITE_API_URL}/api/create-checkout-session', {
         priceId: room.stripePriceId,
         roomId: room.id
       });
