@@ -48,7 +48,7 @@ function RoomList() {
       
       // 创建结账会话
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
-        priceId: room.stripePriceId,
+        price: room.stripePriceId,
         roomId: room.id
       });
 
