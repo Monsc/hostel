@@ -8,6 +8,7 @@ export async function handleCheckout(request, env) {
 
   try {
     const {
+      price,
       roomType,
       name,
       email,
@@ -59,7 +60,12 @@ export async function handleCheckout(request, env) {
 
     // Stripe line item 逻辑
     let lineItem;
-    if (room.stripePriceId) {
+    if (price) {
+      lineItem = {
+        price: price,
+        quantity: 1,
+      };
+    } else if (room.stripePriceId) {
       lineItem = {
         price: room.stripePriceId,
         quantity: 1,
