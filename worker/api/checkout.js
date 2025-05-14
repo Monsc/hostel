@@ -38,7 +38,7 @@ export async function handleCheckout(request, env) {
     // 获取房型信息
     let room;
     if (roomId) {
-      room = await db.collection('rooms').findOne({ id: roomType });
+      room = await db.collection('rooms').findOne({ id: roomId });
       console.log('Found room:', room ? JSON.stringify(room, null, 2) : 'Not found');
     }
 
