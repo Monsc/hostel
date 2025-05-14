@@ -7,8 +7,13 @@ export async function handleCheckout(request, env) {
   }
 
   try {
+    // 记录请求参数
+    const requestBody = await request.json();
+    console.log('Checkout request body:', JSON.stringify(requestBody, null, 2));
+
     const {
       price,
+      roomId,
       roomType,
       name,
       email,
@@ -16,129 +21,145 @@ export async function handleCheckout(request, env) {
       checkout,
       customAmount,
       customNote
-    } = await request.json();
+    } = requestBody;
+
+    // 记录关键参数
+    console.log('Parsed parameters:', {
+      price,
+      roomId,
+      roomType,
+      hasCustomAmount: !!customAmount,
+      hasCustomNote: !!customNote
+    });
 
     const stripe = new Stripe(env.STRIPE_SECRET_KEY);
     const db = await connectToDatabase(env.MONGODB_URI);
 
     // 获取房型信息
-    const room = await db.collection('rooms').findOne({ id: roomType });
-    if (!room) {
-      const errMsg = `Room not found for id: ${roomType}`;
-      console.error(errMsg);
+    let room;
+    if (roomId) {
+      room = await db.collection('rooms').findOne({ id: roomType });
+      console.log('Found room:', room ? JSON.stringify(room, null, 2) : 'Not found');
+    }
+
+    // 验证必要参数
+    if (!price && !room?.stripePriceId && !customAmount) {
+      console.error('Missing price information');
       return new Response(
-        JSON.stringify({ error: errMsg }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({
+          error: 'Missing price information',
+          details: 'Either price, room.stripePriceId, or customAmount must be provided'
+        }),
+        { status: 400 }
       );
     }
 
     // 计算入住天数
-    const checkInDate = new Date(checkin);
-    const checkOutDate = new Date(checkout);
-    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-
-    // 校验入住和退房日期
-    if (nights <= 0) {
-      throw new Error('Check-out date must be after check-in date');
+    let nights = 1;
+    if (checkin && checkout) {
+      const checkinDate = new Date(checkin);
+      const checkoutDate = new Date(checkout);
+      nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+      console.log('Calculated nights:', nights);
     }
 
-    // 计算总价
-    let amount;
-    if (customAmount) {
-      amount = Math.round(parseFloat(customAmount) * 100); // 转换为分
-    } else {
-      amount = Math.round(room.price * nights * 100); // 转换为分
-    }
-
-    // 校验金额
-    if (amount <= 0) {
-      throw new Error('Amount must be greater than 0');
-    }
-
-    // Stripe line item 逻辑
+    // 构建 line item
     let lineItem;
-    if (price) {
-      lineItem = {
-        price: price,
-        quantity: 1,
-      };
-    } else if (room.stripePriceId) {
-      lineItem = {
-        price: room.stripePriceId,
-        quantity: 1,
-      };
-    } else {
-      const roomName = customAmount ? 'Custom Payment' : (room.name?.en || room.name?.zh || 'Room');
-      const roomDesc = customNote || `${nights} nights at ${roomName}`;
-      lineItem = {
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: roomName,
-            description: roomDesc,
+    try {
+      if (price) {
+        lineItem = {
+          price: price,
+          quantity: 1,
+        };
+        console.log('Using provided price:', price);
+      } else if (room?.stripePriceId) {
+        lineItem = {
+          price: room.stripePriceId,
+          quantity: 1,
+        };
+        console.log('Using room stripePriceId:', room.stripePriceId);
+      } else {
+        const roomName = customAmount ? 'Custom Payment' : (room?.name?.en || room?.name?.zh || 'Room');
+        const roomDesc = customNote || `${nights} nights at ${roomName}`;
+        lineItem = {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: roomName,
+              description: roomDesc,
+            },
+            unit_amount: Math.round(customAmount * 100),
           },
-          unit_amount: amount,
-        },
-        quantity: 1,
-      };
+          quantity: 1,
+        };
+        console.log('Using custom price data:', JSON.stringify(lineItem, null, 2));
+      }
+    } catch (lineItemError) {
+      console.error('Error building line item:', lineItemError);
+      return new Response(
+        JSON.stringify({
+          error: 'Error building line item',
+          details: lineItemError.message,
+          stack: lineItemError.stack
+        }),
+        { status: 500 }
+      );
     }
-    // 增强调试打印
-    const debugInfo = {
-      room,
-      roomType,
-      stripePriceId: room?.stripePriceId,
-      lineItem
-    };
-    console.log('DEBUG_CHECKOUT:', JSON.stringify(debugInfo));
 
-    // 创建 Stripe 结账会话
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [lineItem],
-      mode: 'payment',
-      success_url: `${env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${env.FRONTEND_URL}/cancel`,
-      customer_email: email,
-      metadata: {
-        roomId: roomType,
-        guestName: name,
-        email: email,
-        checkInTime: checkin,
-        checkOutTime: checkout,
-        nights: nights,
-        customAmount: customAmount,
-        customNote: customNote
-      },
-    });
+    // 创建结账会话
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [lineItem],
+        mode: 'payment',
+        success_url: `${env.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${env.FRONTEND_URL}/payment/cancel`,
+        customer_email: email,
+        metadata: {
+          roomId: roomId || '',
+          roomType: roomType || '',
+          checkin: checkin || '',
+          checkout: checkout || '',
+          nights: nights.toString(),
+          name: name || '',
+          customAmount: customAmount?.toString() || '',
+          customNote: customNote || ''
+        }
+      });
 
-    return new Response(
-      JSON.stringify({ sessionId: session.id }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
-  } catch (error) {
-    const debugInfo = {
-      error: error.message,
-      room,
-      roomType,
-      stripePriceId: room?.stripePriceId,
-      lineItem
-    };
-    console.error('Checkout error:', debugInfo);
-    return new Response(
-      JSON.stringify(debugInfo),
-      {
-        status: 500,
+      console.log('Created checkout session:', session.id);
+      return new Response(JSON.stringify({ sessionId: session.id }), {
         headers: { 'Content-Type': 'application/json' }
-      }
+      });
+    } catch (stripeError) {
+      console.error('Stripe API error:', {
+        message: stripeError.message,
+        type: stripeError.type,
+        code: stripeError.code,
+        stack: stripeError.stack
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Stripe API error',
+          details: stripeError.message,
+          type: stripeError.type,
+          code: stripeError.code
+        }),
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('Unexpected error in handleCheckout:', {
+      message: error.message,
+      stack: error.stack
+    });
+    return new Response(
+      JSON.stringify({
+        error: 'Unexpected error in handleCheckout',
+        details: error.message,
+        stack: error.stack
+      }),
+      { status: 500 }
     );
   }
 }
